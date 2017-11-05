@@ -4,7 +4,6 @@ package ma.fan.androidcv;
 import android.app.Activity;
 import android.util.Log;
 import android.view.SurfaceView;
-import android.view.View;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -20,20 +19,18 @@ import java.util.ArrayList;
 
 
 /**
- *
+ * Runs an instance of OpenCV, does some light image processing
  */
-public class OpenCVManager implements CameraBridgeViewBase.CvCameraViewListener2
+public class CVRunner implements CameraBridgeViewBase.CvCameraViewListener2
 {
     private Activity _mainActivity;                 // Main activity of the app
 
     private JavaCameraView _javaCameraView;         // Camera view in the robot controller
 
-    ArrayList<Mat> channels = new ArrayList<>();
-
     // Mat values
     private Mat _rgba;
-    Mat ycrcb;
-    Mat result;
+    private Mat _ycrcb;
+    private Mat _result;
 
     // Loader callback, for when activity state changes
     private BaseLoaderCallback _loaderCallBack;
@@ -44,7 +41,7 @@ public class OpenCVManager implements CameraBridgeViewBase.CvCameraViewListener2
      *
      * @param MAIN_ACTIVITY The main activity of the app
      */
-    public OpenCVManager(final Activity MAIN_ACTIVITY)
+    CVRunner(final Activity MAIN_ACTIVITY)
     {
         _mainActivity = MAIN_ACTIVITY;
 
@@ -70,41 +67,62 @@ public class OpenCVManager implements CameraBridgeViewBase.CvCameraViewListener2
     }
 
 
+    /**
+     * Initializes Mats for use
+     *
+     * @param width -  the width of the frames that will be delivered
+     * @param height - the height of the frames that will be delivered
+     */
     @Override
     public void onCameraViewStarted(int width, int height)
     {
         _rgba = new Mat(height , width , CvType.CV_8UC4);
-        ycrcb = new Mat(height , width , CvType.CV_8UC4);
-        result = new Mat(height , width , CvType.CV_8UC4);
+        _ycrcb = new Mat(height , width , CvType.CV_8UC4);
+        _result = new Mat(height , width , CvType.CV_8UC4);
     }
 
+
+    /**
+     * Releases all the Mats
+     */
     @Override
     public void onCameraViewStopped()
     {
         _rgba.release();
+        _ycrcb.release();
+        _result.release();
     }
 
+
+    /**
+     * Takes a camera frame, does some processing, and then returns in to the JavaCameraFrame
+     *
+     * @param inputFrame Frame to be processed
+     *
+     * @return Processed frame
+     */
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
     {
-//        _rgba = inputFrame.rgba();
+        ArrayList<Mat> channels = new ArrayList<>();
+
         inputFrame.rgba().copyTo(_rgba);
 
         if(_rgba.channels() >= 3)
         {
-            Imgproc.cvtColor(_rgba , ycrcb , Imgproc.COLOR_RGB2YCrCb);
-            Core.split(ycrcb , channels);
+            Imgproc.cvtColor(_rgba , _ycrcb, Imgproc.COLOR_RGB2YCrCb);
+            Core.split(_ycrcb, channels);
             Imgproc.equalizeHist(channels.get(0) , channels.get(0));
-            Core.merge(channels , ycrcb);
-            Imgproc.cvtColor(ycrcb , result , Imgproc.COLOR_YCrCb2RGB);
+            Core.merge(channels , _ycrcb);
+            Imgproc.cvtColor(_ycrcb, _result, Imgproc.COLOR_YCrCb2RGB);
 
-            ycrcb.release();
+            _ycrcb.release();
             _rgba.release();
 
             System.gc();
-//            System.runFinalization();
+            System.runFinalization();
 
-            return result;
+            return _result;
         }
 
         _rgba.release();
@@ -113,7 +131,10 @@ public class OpenCVManager implements CameraBridgeViewBase.CvCameraViewListener2
     }
 
 
-    public void init()
+    /**
+     * Initializes OpenCV for use- call this in onCreate()
+     */
+    void init()
     {
         if (!OpenCVLoader.initDebug())
         {
@@ -130,7 +151,12 @@ public class OpenCVManager implements CameraBridgeViewBase.CvCameraViewListener2
     }
 
 
-    public void enableView()
+    /**
+     * Enables OpenCV. Call this in:
+     *
+     * onResume()
+     */
+    void enableView()
     {
         if (!OpenCVLoader.initDebug())
         {
@@ -146,23 +172,18 @@ public class OpenCVManager implements CameraBridgeViewBase.CvCameraViewListener2
     }
 
 
-    public void disableView()
+    /**
+     * Disables OpenCV. Call this in:
+     *
+     * onDestroy()
+     * onPause()
+     * onStop()
+     */
+    void disableView()
     {
         if(_javaCameraView != null)
         {
             _javaCameraView.disableView();
         }
-    }
-
-
-    public void enableCameraView()
-    {
-        _javaCameraView.setVisibility(View.VISIBLE);
-    }
-
-
-    public void disableCameraView()
-    {
-        _javaCameraView.setVisibility(View.GONE);
     }
 }
