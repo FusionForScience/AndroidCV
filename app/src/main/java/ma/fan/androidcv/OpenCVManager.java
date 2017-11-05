@@ -11,9 +11,12 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.JavaCameraView;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
+
+import java.util.ArrayList;
 
 
 /**
@@ -25,26 +28,15 @@ public class OpenCVManager implements CameraBridgeViewBase.CvCameraViewListener2
 
     private JavaCameraView _javaCameraView;         // Camera view in the robot controller
 
+    ArrayList<Mat> channels = new ArrayList<>();
+
     // Mat values
     private Mat _rgba;
-    private Mat _grayScale;
-    private Mat _canny;
+    Mat ycrcb;
+    Mat result;
 
     // Loader callback, for when activity state changes
     private BaseLoaderCallback _loaderCallBack;
-
-    private MAT_TYPE _currentMat;                   // Current Mat type we're using
-
-
-    /**
-     * Type of Mat to use/get/display
-     */
-    public enum MAT_TYPE
-    {
-        RGBA ,
-        GRAY ,
-        CANNY
-    }
 
 
     /**
@@ -75,9 +67,6 @@ public class OpenCVManager implements CameraBridgeViewBase.CvCameraViewListener2
                 super.onManagerConnected(status);
             }
         };
-
-        _currentMat = MAT_TYPE.RGBA;
-
     }
 
 
@@ -85,39 +74,42 @@ public class OpenCVManager implements CameraBridgeViewBase.CvCameraViewListener2
     public void onCameraViewStarted(int width, int height)
     {
         _rgba = new Mat(height , width , CvType.CV_8UC4);
-        _grayScale = new Mat(height , width , CvType.CV_8UC1);
-        _canny = new Mat(height , width , CvType.CV_8UC1);
+        ycrcb = new Mat(height , width , CvType.CV_8UC4);
+        result = new Mat(height , width , CvType.CV_8UC4);
     }
 
     @Override
     public void onCameraViewStopped()
     {
         _rgba.release();
-        _grayScale.release();
-        _canny.release();
     }
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
     {
-        _rgba = inputFrame.rgba();
+//        _rgba = inputFrame.rgba();
+        inputFrame.rgba().copyTo(_rgba);
 
-        Imgproc.cvtColor(_rgba , _grayScale , Imgproc.COLOR_RGB2GRAY);
-        Imgproc.Canny(_grayScale , _canny , 50 , 100);
-
-        switch(_currentMat)
+        if(_rgba.channels() >= 3)
         {
-            case RGBA:
-                return _rgba;
+            Imgproc.cvtColor(_rgba , ycrcb , Imgproc.COLOR_RGB2YCrCb);
+            Core.split(ycrcb , channels);
+            Imgproc.equalizeHist(channels.get(0) , channels.get(0));
+            Core.merge(channels , ycrcb);
+            Imgproc.cvtColor(ycrcb , result , Imgproc.COLOR_YCrCb2RGB);
 
-            case GRAY:
-                return _grayScale;
+            ycrcb.release();
+            _rgba.release();
 
-            case CANNY:
-                return _canny;
+            System.gc();
+//            System.runFinalization();
+
+            return result;
         }
 
-        return null;
+        _rgba.release();
+
+        return new Mat();
     }
 
 
@@ -132,7 +124,7 @@ public class OpenCVManager implements CameraBridgeViewBase.CvCameraViewListener2
             Log.d(this.getClass().getSimpleName(), "  OpenCVLoader.initDebug(), working.");
         }
 
-        _javaCameraView = (JavaCameraView)_mainActivity.findViewById(R.id.java_camera_view);
+        _javaCameraView = _mainActivity.findViewById(R.id.java_camera_view);
         _javaCameraView.setVisibility(SurfaceView.VISIBLE);
         _javaCameraView.setCvCameraViewListener(this);
     }
