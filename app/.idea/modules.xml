@@ -2,9 +2,10 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../AndroidCv.iml" filepath="$PROJECT_DIR$/../AndroidCv.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../OpenCVLibrary320/OpenCVLibrary320.iml" filepath="$PROJECT_DIR$/../OpenCVLibrary320/OpenCVLibrary320.iml" />
+      <module fileurl="file://C:\Users\FnMat\Desktop\AndroidCV\AndroidCv.iml" filepath="C:\Users\FnMat\Desktop\AndroidCV\AndroidCv.iml" />
+      <module fileurl="file://C:\Users\FnMat\Desktop\AndroidCV\OpenCVLibrary320\OpenCVLibrary320.iml" filepath="C:\Users\FnMat\Desktop\AndroidCV\OpenCVLibrary320\OpenCVLibrary320.iml" />
       <module fileurl="file://$PROJECT_DIR$/app.iml" filepath="$PROJECT_DIR$/app.iml" />
+      <module fileurl="file://C:\Users\FnMat\Desktop\AndroidCV\app\app.iml" filepath="C:\Users\FnMat\Desktop\AndroidCV\app\app.iml" />
     </modules>
   </component>
 </project>
